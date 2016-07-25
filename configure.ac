@@ -141,6 +141,26 @@ AC_CHECK_HEADERS(
     string.h sys/ioctl.h sys/socket.h sys/time.h syslog.h \
     termios.h unistd.h])
 
+#####################################
+# Checks for socket options
+#
+# Check for packet pacing socket option (Linux only for now).
+AC_MSG_CHECKING([SO_MAX_PACING_RATE socket option])
+AC_TRY_LINK(,
+[
+  #include <sys/socket.h>
+  #ifdef SO_MAX_PACING_RATE
+    yes
+  #endif
+],
+[
+  AC_MSG_RESULT([yes])
+  AC_DEFINE(HAVE_SO_MAX_PACING_RATE, 1, [setsockopt supports SO_MAX_PACING_RATE])
+],
+[
+  AC_MSG_RESULT([no])
+])
+
 
 #####################################
 # Checks for libraries.

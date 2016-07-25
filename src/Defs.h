@@ -187,6 +187,7 @@ enum {
 	OPT_CLIENTIP,                   //37
 	OPT_TOS,                        //38
 	OPT_LLS,                        //39
+	OPT_MAX_RATE_LIMIT,             //40
 };
 
 #define MODULE_NAME			"sockperf"
@@ -600,6 +601,7 @@ struct user_params_t {
 	int tos;
 	unsigned int lls_usecs;
 	bool lls_is_set;
+	unsigned int max_rate_limit;
 };
 
 struct mutable_params_t {

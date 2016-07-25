@@ -231,6 +231,10 @@ static const AOPT_DESC  common_opt_desc[] =
 		"Turn on LLS via socket option (value = usec to poll)."
 	},
 	{
+		OPT_MAX_RATE_LIMIT, AOPT_ARG, aopt_set_literal( 0 ), aopt_set_string("max-rate-limit"),
+		"Allows setting SO_MAX_PACING_RATE (value in units of 'bytes-per-second')"
+	},
+	{
 		OPT_BUFFER_SIZE, AOPT_ARG, aopt_set_literal( 0 ), aopt_set_string( "buffer-size" ),
 		"Set total socket receive/send buffer <size> in bytes (system defined by default)."
 	},
@@ -239,7 +243,7 @@ static const AOPT_DESC  common_opt_desc[] =
 		"Open non-blocked sockets."
 	},
 	{
-		OPT_RECV_LOOPING, AOPT_ARG, aopt_set_literal( 0 ), aopt_set_string( "recv_looping_num" ),
+		OPT_RECV_LOOPING, AOPT_ARG, aopt_set_literal( 0 ), aopt_set_string( "recv-looping-num" ),
 		"Set sockperf to loop over recvfrom() until EAGAIN or <N> good received packets, -1 for infinite, must be used with --nonblocked (default 1). "
 	},
 	{
@@ -369,11 +373,11 @@ static int proc_mode_under_load( int id, int argc, const char **argv )
 			"Run for <sec> seconds (default 1, max = 36000000)."
 		},
 		{
-			OPT_CLIENTPORT, AOPT_ARG,	aopt_set_literal( 0 ),	aopt_set_string( "client_port" ),
+			OPT_CLIENTPORT, AOPT_ARG,	aopt_set_literal( 0 ),	aopt_set_string( "client-port" ),
 			"Force the client side to bind to a specific port (default = 0). "
 		},
 		{
-			OPT_CLIENTIP, AOPT_ARG,		aopt_set_literal( 0 ),	aopt_set_string( "client_ip" ),
+			OPT_CLIENTIP, AOPT_ARG,		aopt_set_literal( 0 ),	aopt_set_string( "client-ip" ),
 			"Force the client side to bind to a specific ip address (default = 0). "
 		},
 		{
@@ -526,7 +530,7 @@ static int proc_mode_under_load( int id, int argc, const char **argv )
 
 		if ( !rc && aopt_check(self_obj, OPT_CLIENTPORT) ) {
 			if (aopt_check(common_obj, 'f')) {
-				log_msg("--client_port conflicts with -f option");
+				log_msg("--client-port conflicts with -f option");
 				rc = SOCKPERF_ERR_BAD_ARGUMENT;
 			}
 			else{
@@ -675,11 +679,11 @@ static int proc_mode_ping_pong( int id, int argc, const char **argv )
 			"Run for <sec> seconds (default 1, max = 36000000)."
 		},
 		{
-			OPT_CLIENTPORT, AOPT_ARG,	aopt_set_literal( 0 ),	aopt_set_string( "client_port" ),
+			OPT_CLIENTPORT, AOPT_ARG,	aopt_set_literal( 0 ),	aopt_set_string( "client-port" ),
 			"Force the client side to bind to a specific port (default = 0). "
 		},
 		{
-			OPT_CLIENTIP, AOPT_ARG,		aopt_set_literal( 0 ),	aopt_set_string( "client_ip" ),
+			OPT_CLIENTIP, AOPT_ARG,		aopt_set_literal( 0 ),	aopt_set_string( "client-ip" ),
 			"Force the client side to bind to a specific ip address (default = 0). "
 		},
 		{
@@ -814,7 +818,7 @@ static int proc_mode_ping_pong( int id, int argc, const char **argv )
 
 		if ( !rc && aopt_check(self_obj, OPT_CLIENTPORT) ) {
 			if (aopt_check(common_obj, 'f')) {
-				log_msg("--client_port conflicts with -f option");
+				log_msg("--client-port conflicts with -f option");
 				rc = SOCKPERF_ERR_BAD_ARGUMENT;
 			}
 			else {
@@ -980,11 +984,11 @@ static int proc_mode_throughput( int id, int argc, const char **argv )
 			"Run for <sec> seconds (default 1, max = 36000000)."
 		},
 		{
-			OPT_CLIENTPORT, AOPT_ARG,	aopt_set_literal( 0 ),	aopt_set_string( "client_port" ),
+			OPT_CLIENTPORT, AOPT_ARG,	aopt_set_literal( 0 ),	aopt_set_string( "client-port" ),
 			"Force the client side to bind to a specific port (default = 0). "
 		},
 		{
-			OPT_CLIENTIP, AOPT_ARG,		aopt_set_literal( 0 ),	aopt_set_string( "client_ip" ),
+			OPT_CLIENTIP, AOPT_ARG,		aopt_set_literal( 0 ),	aopt_set_string( "client-ip" ),
 			"Force the client side to bind to a specific ip address (default = 0). "
 		},
 		{
@@ -1115,7 +1119,7 @@ static int proc_mode_throughput( int id, int argc, const char **argv )
 
 		if ( !rc && aopt_check(self_obj, OPT_CLIENTPORT) ) {
 			if (aopt_check(common_obj, 'f')) {
-				log_msg("--client_port conflicts with -f option");
+				log_msg("--client-port conflicts with -f option");
 				rc = SOCKPERF_ERR_BAD_ARGUMENT;
 			}
 			else{
@@ -1865,6 +1869,20 @@ static int parse_common_opt( const AOPT_OBJECT *common_obj )
 			}
 		}
 
+		if ( !rc && aopt_check(common_obj, OPT_MAX_RATE_LIMIT) ) {
+			const char * optarg = aopt_value(common_obj, OPT_MAX_RATE_LIMIT);
+			if (optarg)
+			{
+#if defined (WIN32) || defined (_WIN32)
+				log_msg("SO_MAX_PACING_RATE option not supported for Windows");
+				rc = SOCKPERF_ERR_UNSUPPORTED;
+#else
+				int value = strtol(optarg, NULL, 0);
+				s_user_params.max_rate_limit = value;
+#endif
+			}
+		}
+
 		if ( !rc && aopt_check(common_obj, OPT_NONBLOCKED_SEND) ) {
 			s_user_params.is_nonblocked_send = true;
 		}
@@ -1883,13 +1901,13 @@ static int parse_common_opt( const AOPT_OBJECT *common_obj )
 					if ( 1 != value)
 					{
 						if (!aopt_check(common_obj, OPT_NONBLOCKED)) {
-							log_msg("recv_looping_num larger then one must be used in a none-blocked mode only. add --nonblocked.");
+							log_msg("recv-looping-num larger then one must be used in a none-blocked mode only. add --nonblocked.");
 							rc = SOCKPERF_ERR_BAD_ARGUMENT;
 						}
 					}
 					else if ( 0 == value)
 					{
-						log_msg("recv_looping_num cannot be equal to 0.");
+						log_msg("recv-looping-num cannot be equal to 0.");
 						rc = SOCKPERF_ERR_BAD_ARGUMENT;
 					}
 					else {
@@ -2637,6 +2655,24 @@ int sock_set_multicast(int fd, struct fds_data *p_data)
 	return rc;
 }
 
+int sock_set_maxratelimit(int fd)
+{
+	int rc = SOCKPERF_ERR_NONE;
+	unsigned int rate = s_user_params.max_rate_limit;
+ 	if (rate > 0) {
+#ifdef HAVE_SO_MAX_PACING_RATE
+		if (setsockopt(fd, SOL_SOCKET, SO_MAX_PACING_RATE, &rate, sizeof(rate)) < 0) {
+			log_err("setsockopt(SO_MAX_PACING_RATE) failed");
+#else
+		if (1) {
+			log_err("setsockopt(SO_MAX_PACING_RATE) not supported");
+#endif // HAVE_SO_MAX_PACING_RATE
+			rc = SOCKPERF_ERR_SOCKET;
+		}
+	}
+	return rc;
+}
+
 
 //------------------------------------------------------------------------------
 /* returns the new socket fd
@@ -2711,6 +2747,12 @@ int prepare_socket(int fd, struct fds_data *p_data)
 			(s_user_params.tos))
 	{
 		rc = sock_set_tos(fd);
+	}
+
+	if (!rc &&
+			(s_user_params.max_rate_limit))
+	{
+		rc = sock_set_maxratelimit(fd);
 	}
 
 #ifdef  USING_VMA_EXTRA_API
@@ -3316,7 +3358,8 @@ receiver_affinity = %s \n\t\
 b_stream = %d \n\t\
 daemonize = %d \n\t\
 feedfile_name = %s \n\t\
-tos = %d \n",
+tos = %d \n\t\
+max_rate_limit = %d \n",
 s_user_params.mode,
 s_user_params.withsock_accl,
 s_user_params.msg_size,
@@ -3355,7 +3398,8 @@ s_user_params.b_no_rdtsc,
 s_user_params.b_stream,
 s_user_params.daemonize,
 (strlen(s_user_params.feedfile_name) ? s_user_params.feedfile_name : "<empty>"),
-s_user_params.tos);
+s_user_params.tos,
+s_user_params.max_rate_limit);
 
 		// Display application version
 		log_msg( MAGNETA "== version #%s == " ENDCOLOR, VERSION);
